@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Play interceptor
 // @namespace    http://tampermonkey.net/
-// @version      0.1.1
+// @version      0.1.2
 // @description  Sniff play responses, and modify the view
 // @author       Thomas Petersson
 // @match        https://play.tv2.no/*
@@ -47,6 +47,8 @@ let waitFor = async function waitFor(f) {
     while (!f()) await sleep(100);
     return f();
 };
+
+let dropdownDivPromise = () => waitFor(() => document.querySelector("#user-dropdown > div"));
 
 // A list of functions that compose the contents of the red info box
 // Each function should return an element to be appended to the info box
