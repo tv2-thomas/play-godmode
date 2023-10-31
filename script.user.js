@@ -1,54 +1,26 @@
 // ==UserScript==
 // @name         Play interceptor
 // @namespace    http://tampermonkey.net/
-// @version      0.1.5
+// @version      0.2.0
 // @description  Sniff play responses, and modify the view
 // @author       Thomas Petersson
 // @match        https://play.tv2.no/*
 // @match        https://stage-sumo.tv2.no/*
 // @icon         https://play.tv2.no/gfx/logo_1200x630.png
+// @require      ./utils.js
+// @require      ./toggle.js
+// @require      ./detailPage.js
+// @require      ./dom.js
+// @require      ./rest.js
+// @require      ./addons.js
+// @require      ./feedsPage.js
+// @require      ./gridPage.js
 // @grant        none
 // ==/UserScript==
 
-let responses = {};
-let godModeElements = [];
 let userID;
 let profileID;
 let feedCssClass;
-
-let env = window.location.origin.includes("discovery")
-    ? "dev"
-    : window.location.origin.includes("stage")
-        ? "stage"
-        : "prod";
-        
-let statusURL;
-let apiURL;
-let altApiURL;
-switch (env) {
-    case ("dev"):
-        statusURL = "";
-        apiURL = "https://dev.ai.tv2.no";
-        break;
-    case "stage":
-        statusURL = "https://publisering.status.tv2.no/status/program/";
-        apiURL = "https://stage.ai.tv2.no";
-        break;
-    case "prod":
-        statusURL = "https://publisering.status.tv2.no/status/program/";
-        apiURL = "https://play.tv2.no";
-        altApiURL = "https://ai.sumo.tv2.no";
-        break;
-}
-
-
-let sleep = ms => new Promise(r => setTimeout(r, ms));
-let waitFor = async function waitFor(f) {
-    while (!f()) await sleep(100);
-    return f();
-};
-
-let dropdownDivPromise = () => waitFor(() => document.querySelector("#user-dropdown > div"));
 
 // A list of functions that compose the contents of the red info box
 // Each function should return an element to be appended to the info box
@@ -59,59 +31,8 @@ let GodModeInfoAddons = [
     addContentIDCopyable,
     addStatusLink,
     addBucketLink,
-    () => "test"
 ];
 
-
-// Inject a style tag for custom styling, like copy button hover color
-waitFor(() => document.querySelector("head")).then(head => {
-    var css = '.godmode-copy-button:hover{ color: #a6b4f1 }';
-    var style = document.createElement('style');
-
-    if (style.styleSheet) {
-        style.styleSheet.cssText = css;
-    } else {
-        style.appendChild(document.createTextNode(css));
-    }
-
-    document.getElementsByTagName('head')[0].appendChild(style);
-});
-
-window.addEventListener('popstate', function (event) {
-    // Handle the back button event here
-    const hrefChangeEvent = new CustomEvent('hrefchange', { detail: window.location.href });
-    window.dispatchEvent(hrefChangeEvent);
-});
-
-// Create a dummy element
-const urlElement = document.createElement('a');
-
-// Update the href attribute of the dummy element whenever the URL changes
-(function (history) {
-    var pushState = history.pushState;
-    history.pushState = function (state) {
-        pushState.apply(history, arguments);
-        urlElement.href = window.location.href;
-    };
-})(window.history);
-
-// Create a MutationObserver instance
-const observer = new MutationObserver(function (mutations) {
-    mutations.forEach(function (mutation) {
-        const hrefChangeEvent = new CustomEvent('hrefchange', { detail: window.location.href });
-        window.dispatchEvent(hrefChangeEvent);
-    });
-});
-
-// Start observing the dummy element for attribute changes
-observer.observe(urlElement, { attributes: true });
-
-// Trigger an initial change to set the current URL
-urlElement.href = window.location.href;
-
-window.addEventListener('hrefchange', function (event) {
-    handleNavigation(event.detail);
-});
 
 (async function () {
     'use strict';
@@ -159,14 +80,31 @@ async function handleNavigation(href) {
 
     let detailsPromise = waitFor(() => document.querySelector("[data-selenium-id='details-page']")).then((detailsPage) => handleDetailsPage(path));
     let feedPromise = waitFor(() => document.querySelector("[data-selenium-id='feeds-page']")).then((page) => handlePage(page));
+    let feedGridPromise = waitFor(() => document.querySelector("[data-selenium-id='feed-page']")).then((page) => handleGridPage(page));
 
     try {
-        await Promise.race([detailsPromise, feedPromise]);
+        await Promise.race([detailsPromise, feedPromise, feedGridPromise]);
     } catch (err) {
         console.error(err);
     }
 }
 
+
+async function handleGridPage(page) {
+    let header = page.querySelector("h1").textContent;
+    let restFeed = await getFeedResponse(header, true);
+
+    let feedItemTasks = restFeed.content.map(async (feeditem) => {
+        let DOMItem = page.querySelector(`[aria-label="${feeditem.title}"]`).parentNode.parentNode.parentNode;
+        if (feeditem && DOMItem) {
+            let infoDiv = createInfoDiv(feeditem);
+            DOMItem.style.position = "relative";
+            DOMItem.appendChild(infoDiv);
+        }
+    });
+    await Promise.all(feedItemTasks);
+
+}
 
 async function handleDetailsPage(path) {
     let tasks = [];
@@ -205,24 +143,38 @@ async function handleDetailsPage(path) {
 }
 
 async function handlePage(DOMfeedsPage) {
-    let DOMfeeds = await waitFor(() => DOMfeedsPage.querySelectorAll("[data-selenium-id='feed-default']").length ?
-        document.querySelectorAll("[data-selenium-id='feed-default']") :
-        false);
+    let DOMfeeds =  DOMfeedsPage.querySelectorAll("[data-selenium-id='feed-default']")
+    let DOMfeedButtons =  DOMfeedsPage.querySelectorAll("[data-selenium-id='feed-buttons']")
+    let DOMCWFeed =  DOMfeedsPage.querySelectorAll("[data-selenium-id='feed-continue-watching']")
+    let DOMfeedPromoted =  DOMfeedsPage.querySelectorAll("[data-selenium-id='feed-promoted']")
 
-    DOMfeeds = [...DOMfeeds, ...DOMfeedsPage.querySelectorAll("[data-selenium-id='feed-buttons']")];
-    DOMfeeds = [...DOMfeeds, ...DOMfeedsPage.querySelectorAll("[data-selenium-id='feed-promoted']")];
+    let DOMElements = [];
+    for (let result of [DOMfeeds, DOMfeedButtons, DOMfeedPromoted, DOMCWFeed]) {
+        if (result) {
+            DOMElements.push(...result);
+        }
+    }
 
-    if (!DOMfeeds) {
+    if (!DOMElements) {
         return;
     }
 
     let tasks = [];
-    for (let DOMFeed of DOMfeeds) {
+    for (let DOMFeed of DOMElements) {
         let h2 = await waitFor(() => DOMFeed.querySelector("h2"));
         let restFeed = await getFeedResponse(h2.textContent);
 
         let textNode = document.createTextNode(` (${restFeed.id})`);
+
+        let gridView = createLink(document.location.origin + "/feed/" + restFeed.id, "[#️]", "Grid view")
+        let vccviz = createLink(`https://vccviz.ai.gcp.tv2asa.no/vccviz/?page=${restFeed.id}`, "🧙🏻", "VCCVIZ")
+        let vccviznerd = createLink(`https://vccviz.ai.gcp.tv2asa.no/vccviz/feedelement/?id=${restFeed.id}`, "🤓", "VCCVIZ Source")
+
         h2.appendChild(textNode);
+        h2.appendChild(gridView);
+        h2.appendChild(vccviz);
+        h2.appendChild(vccviznerd);
+
         godModeElements.push(textNode);
 
         let DOMfeedItems = await waitFor(() => DOMFeed.querySelectorAll("li").length - restFeed.content.length <= 1 ?
@@ -253,58 +205,13 @@ async function handlePage(DOMfeedsPage) {
     await Promise.all(tasks);
     return true;
 }
-// INFO ADDONS
-function addBucketLink(d){
-    // Add link to image bucket
-    let bucketLink = `https://console.cloud.google.com/storage/browser/codi-play-content-images/${env}/`;
-    let imgurl = d.image.src;
-    let regImg = /[a-z0-9]{24}/.exec(imgurl);
-
-    if (regImg) {
-        let imagepackid = regImg[0]
-        let imglink = document.createElement("a");
-        imglink.textContent = "Image bucket (wip)";
-        imglink.href = bucketLink + imagepackid
-        return imglink
-    }
-}
-
-function addStatusLink(d){
-        // Add link to statuspage
-        if (d.content_id) {
-            let link = document.createElement("a");
-            link.textContent = "Status link";
-            let [type, id] = d.content_id.split('-');
-    
-            if (type === "a") {
-                link.href = `${statusURL}${id}`;
-                return link
-            }
-        }
-}
-
-function addContentIDCopyable(d){
-    if (!d && !d.content_id) {
-        return;
-    }
-    let contentSpan = document.createElement("span");
-    let copyButton = document.createElement("button");
-    copyButton.textContent = "[Copy ";
-    copyButton.classList.add("godmode-copy-button");
-    copyButton.addEventListener("click", () => copyContent(d.content_id));
-    copyButton.appendChild(document.createTextNode(d.content_id + "]"));
-    contentSpan.appendChild(copyButton);
-    contentSpan.style.display = "flex";
-    contentSpan.style.gap = "8px";
-    return contentSpan;
-}
 
 // REST
-async function getFeedResponse(DOMfeedTitle) {
+async function getFeedResponse(DOMfeedTitle, grid = false) {
     return await waitFor(() => {
         let feedsResponses = []
 
-        let feedKey = `${apiURL}/v4/feeds`;
+        let feedKey = `${apiURL}/v4/${grid ? "feedgrid": "feeds"}`;
 
         for (let key in responses) {
             if (key.includes(feedKey)) {
@@ -313,7 +220,7 @@ async function getFeedResponse(DOMfeedTitle) {
         }
 
         if (!feedsResponses.length) {
-            feedKey = `${altApiURL}/v4/feeds`;
+            feedKey = `${altApiURL}/v4/${grid ? "feedgrid": "feeds"}`;
             for (let key in responses) {
                 if (key.includes(feedKey)) {
                     feedsResponses.push(responses[key]);
@@ -326,6 +233,10 @@ async function getFeedResponse(DOMfeedTitle) {
         }
 
         for (let feedResponse of feedsResponses) {
+            if (grid && feedResponse.title === DOMfeedTitle) {
+                return feedResponse;
+            }
+
             let feed = findFirst(feedResponse.feeds, f => f.title === DOMfeedTitle);
             if (feed) {
                 return feed;
@@ -396,26 +307,6 @@ async function getActiveCollection(detailsResponse) {
 
 
 // DOM manipulation
-async function onGodModeToggle({ target }) {
-    if (target.checked) {
-        if (target.checked === isGodMode()) {
-            return;
-        }
-        localStorage.setItem("godmode", true);
-        await handleNavigation(window.location.href);
-    } else {
-        localStorage.removeItem("godmode");
-
-        for (let element of godModeElements) {
-            try {
-                element.remove();
-            } catch (err) {
-                console.error(err);
-            }
-        }
-    }
-}
-
 async function populateDetailsPage(detailsResponse) {
     let detailsTitle = await waitFor(() => document.querySelector("[data-selenium-id='details-page-title']"));
 
@@ -473,98 +364,5 @@ async function populateCollection(collection) {
             infoDiv.style.top = 0;
             waitFor(() => item.querySelector("img")).then(img => img.parentNode.parentNode.parentNode.parentNode.appendChild(infoDiv));
         }
-    }
-}
-
-
-function createInfoDiv(d) {
-    let div = document.createElement("div");
-    for (let addon of GodModeInfoAddons) {
-        let elem = addon(d);
-        if (typeof elem === "string") {
-            elem = document.createTextNode(elem);
-        }
-        if (elem) {
-            div.appendChild(elem);
-        }
-    }
-
-    div.style.position = "absolute";
-    div.style.width = "200px";
-    div.style.top = "0px";
-    div.style.right = "0px";
-    div.style.color = "white";
-    div.style.fontWeight = "500";
-    div.style.margin = "1rem";
-    div.style.fontFamily = "monospace";
-    div.style.borderRadius = "5px";
-    div.style.backgroundColor = "#bb0000b5";
-    div.style.padding = "1rem";
-    div.style.display = "flex";
-    div.style.flexDirection = "column";
-    div.style.whiteSpace = "nowrap";
-    
-    div.classList.add("godmode-info");
-
-    godModeElements.push(div)
-
-    return div
-}
-
-
-function addGodModeToggle(dropdownsep) {
-    console.debug("Adding Godmode toggle");
-    if (!dropdownsep) {
-        return;
-    }
-
-    let toggle = createToggleButton(onGodModeToggle);
-    insertAfter(toggle, dropdownsep);
-    window.godmodeinput.checked = isGodMode();
-}
-
-function isGodMode() {
-    // ...
-    return !!localStorage.getItem("godmode");
-}
-
-function br() { return document.createElement("br") }
-
-function findFirst(list, fn) {
-    for (let l of list) {
-        if (fn(l)) {
-            return l
-        }
-    }
-}
-
-function insertAfter(newNode, existingNode) {
-    existingNode.parentNode.insertBefore(newNode, existingNode.nextSibling);
-}
-
-
-function createToggleButton(onToggle) {
-    const checkbox = document.createElement("input");
-    checkbox.id = "godmodeinput";
-    checkbox.type = "checkbox";
-    checkbox.addEventListener("change", onToggle);
-
-    const label = document.createElement("label");
-    label.htmlFor = "godmodeinput";
-    label.id = "godmodelabel";
-    label.appendChild(checkbox);
-    label.appendChild(document.createTextNode("Toggle God mode"));
-
-    label.style.display = "flex";
-    label.style.gap = "8px";
-    label.style.paddingLeft = "3rem";
-    return label;
-}
-
-const copyContent = async (text) => {
-    try {
-        await navigator.clipboard.writeText(text);
-    } catch (err) {
-        console.error('Failed to copy: ', err);
     }
 }
