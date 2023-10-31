@@ -1,13 +1,12 @@
 // ==UserScript==
 // @name         Play interceptor
 // @namespace    http://tampermonkey.net/
-// @version      0.1.4
+// @version      0.1.5
 // @description  Sniff play responses, and modify the view
 // @author       Thomas Petersson
 // @match        https://play.tv2.no/*
 // @match        https://stage-sumo.tv2.no/*
 // @icon         https://play.tv2.no/gfx/logo_1200x630.png
-// @require      file:///Users/thomas/Documents/Utvikling/play-godemode/script.user.js
 // @grant        none
 // ==/UserScript==
 
@@ -22,7 +21,7 @@ let env = window.location.origin.includes("discovery")
     : window.location.origin.includes("stage")
         ? "stage"
         : "prod";
-
+        
 let statusURL;
 let apiURL;
 let altApiURL;
@@ -60,6 +59,7 @@ let GodModeInfoAddons = [
     addContentIDCopyable,
     addStatusLink,
     addBucketLink,
+    () => "test"
 ];
 
 
