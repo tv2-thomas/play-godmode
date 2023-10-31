@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Play interceptor
 // @namespace    http://tampermonkey.net/
-// @version      0.1.2
+// @version      0.1.3
 // @description  Sniff play responses, and modify the view
 // @author       Thomas Petersson
 // @match        https://play.tv2.no/*
@@ -59,7 +59,6 @@ let GodModeInfoAddons = [
     addContentIDCopyable,
     addStatusLink,
     addBucketLink,
-    () => "Test!"
 ];
 
 
@@ -151,9 +150,6 @@ window.addEventListener('hrefchange', function (event) {
 })();
 
 async function handleNavigation(href) {
-    console.log(href)
-    console.log(responses)
-
     if (!isGodMode()) {
         return;
     }
@@ -266,7 +262,7 @@ function addBucketLink(d){
     if (regImg) {
         let imagepackid = regImg[0]
         let imglink = document.createElement("a");
-        imglink.textContent = "Image bucket";
+        imglink.textContent = "Image bucket (wip)";
         imglink.href = bucketLink + imagepackid
         return imglink
     }
@@ -422,7 +418,7 @@ async function onGodModeToggle({ target }) {
 async function populateDetailsPage(detailsResponse) {
     let detailsTitle = await waitFor(() => document.querySelector("[data-selenium-id='details-page-title']"));
 
-    brEle = br();
+    let brEle = br();
     godModeElements.push(brEle);
     detailsTitle.appendChild(brEle);
 
@@ -473,8 +469,8 @@ async function populateCollection(collection) {
         if (restItem) {
             let infoDiv = createInfoDiv(restItem);
             infoDiv.style.left = 0;
-            infoDiv.style.top = "20px";
-            waitFor(() => item.querySelector("img")).then(img => img.parentNode.parentNode.appendChild(infoDiv));
+            infoDiv.style.top = 0;
+            waitFor(() => item.querySelector("img")).then(img => img.parentNode.parentNode.parentNode.parentNode.appendChild(infoDiv));
         }
     }
 }
@@ -498,13 +494,14 @@ function createInfoDiv(d) {
     div.style.right = "0px";
     div.style.color = "white";
     div.style.fontWeight = "500";
-    div.style.margin = "2rem";
+    div.style.margin = "1rem";
     div.style.fontFamily = "monospace";
     div.style.borderRadius = "5px";
     div.style.backgroundColor = "#bb0000b5";
     div.style.padding = "1rem";
     div.style.display = "flex";
     div.style.flexDirection = "column";
+    div.style.whiteSpace = "nowrap";
     
     div.classList.add("godmode-info");
 
