@@ -70,6 +70,7 @@ function createLink(link, text, title="") {
     if (title) {
         linkElem.title = title;
     }
+    linkElem.style.cursor = "pointer";
     return linkElem
 }
 
