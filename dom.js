@@ -18,21 +18,35 @@ function createInfoDiv(d) {
     div.style.top = "0px";
     div.style.right = "0px";
     div.style.color = "white";
-    div.style.fontWeight = "500";
-    div.style.margin = "1rem";
-    div.style.fontFamily = "monospace";
-    div.style.borderRadius = "5px";
-    div.style.backgroundColor = "#bb0000b5";
-    div.style.padding = "1rem";
+    div.style.backgroundColor = "#ff0000"; // Red background
+    div.style.borderRadius = "10px"; // Rounded edges
+    div.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.1)"; // Subtle shadow
+    div.style.padding = "10px"; // Padding inside the bubble
+    div.style.fontSize = "14px"; // Readable font size
+    div.style.transition = "transform 0.2s"; // Smooth transition for hover effect
     div.style.display = "flex";
     div.style.flexDirection = "column";
     div.style.whiteSpace = "nowrap";
+    div.style.textAlign = "left"; // Align content to the left
     
+    // Applying text alignment to button elements specifically
+    const buttons = div.getElementsByTagName('button');
+    for (let button of buttons) {
+        button.style.textAlign = "left";
+    }
+
     div.classList.add("godmode-info");
 
-    godModeElements.push(div)
+    // Hover effect to scale the bubble slightly
+    div.addEventListener('mouseover', function() {
+        div.style.transform = "scale(1.1)";
+    });
+    
+    div.addEventListener('mouseout', function() {
+        div.style.transform = "scale(1)";
+    });
 
-    return div
+    return div;
 }
 
 function createToggleButton(onToggle) {

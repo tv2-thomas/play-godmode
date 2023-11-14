@@ -170,10 +170,16 @@ async function handlePage(DOMfeedsPage) {
         let vccviz = createLink(`https://vccviz.ai.gcp.tv2asa.no/vccviz/?page=${restFeed.id}`, "🧙🏻", "VCCVIZ")
         let vccviznerd = createLink(`https://vccviz.ai.gcp.tv2asa.no/vccviz/feedelement/?id=${restFeed.id}`, "🤓", "VCCVIZ Source")
 
+        let section = location.pathname === "/" ? "Forsiden" : location.pathname.split("/")[1];
+        section = (section.charAt(0).toUpperCase() + section.slice(1)).replace("-", "+");
+        let feedName = restFeed.title.replace(" ", "+");
+        let looker = createLink(`https://looker.tv2.no/dashboards/1553?Feed+Name=${feedName}&Page+Title=Section+-+${section}`, "👀", `Looker: ${restFeed.title}`)
+        
         h2.appendChild(textNode);
         h2.appendChild(gridView);
         h2.appendChild(vccviz);
         h2.appendChild(vccviznerd);
+        h2.appendChild(looker);
 
         godModeElements.push(textNode);
 
