@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Play interceptor
 // @namespace    http://tampermonkey.net/
-// @version      0.2.4
+// @version      0.2.5
 // @description  Sniff play responses, and modify the view
 // @author       Thomas Petersson
 // @match        https://play.tv2.no/*
@@ -172,7 +172,7 @@ async function handlePage(DOMfeedsPage) {
 
         let section = location.pathname === "/" ? "Forsiden" : location.pathname.split("/")[1];
         section = (section.charAt(0).toUpperCase() + section.slice(1)).replace("-", " ");
-        section = encodeURIComponent(section);
+        section = encodeURIComponent(convertToTitleCase(section));
         let feedName = encodeURIComponent(restFeed.title);
         let looker = createLink(`https://looker.tv2.no/dashboards/1553?Feed+Name=${feedName}&Page+Title=Section+-+${section}`, "👀", `Looker: ${restFeed.title}`)
         

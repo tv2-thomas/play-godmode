@@ -115,3 +115,11 @@ urlElement.href = window.location.href;
 window.addEventListener('hrefchange', function (event) {
     handleNavigation(event.detail);
 });
+
+
+function convertToTitleCase(str) {
+    if (!str) {
+        return ""
+    }
+    return str.toLowerCase().replace(/\b\w/g, s => s.toUpperCase());
+}
