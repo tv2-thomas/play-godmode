@@ -35,7 +35,7 @@ function addStatusLink(d){
  */
 function addBucketLink(d){
     // Add link to image bucket
-    let bucketLink = `https://console.cloud.google.com/storage/browser/codi-play-content-images/${env}/`;
+    let bucketLink = `https://console.cloud.google.com/storage/browser/codi-play-content-images-ew1/${env}/`;
     let imgurl = d.image.src;
     let regImg = /[a-z0-9]{24}/.exec(imgurl);
 
