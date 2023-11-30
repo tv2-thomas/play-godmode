@@ -43,3 +43,18 @@ function addBucketLink(d){
         return createLink(bucketLink + regImg[0], "Image bucket (wip)")
     }
 }
+
+/**
+ * 
+ * @param {{image:{src:string}}} d 
+ * @returns 
+ */
+function addCopyImagepack(d){
+    // Add link to image bucket
+    let imgurl = d.image.src;
+    let regImg = /[a-z0-9]{24}/.exec(imgurl);
+
+    if (regImg && regImg.length > 0) {
+        return createButton(`[Copy imgpack]`, () => copyContent(regImg[0]), "godmode-copy-button");
+    }
+}
