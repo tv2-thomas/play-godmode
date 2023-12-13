@@ -9,7 +9,7 @@ let apiURL;
 let altApiURL;
 switch (env) {
     case ("dev"):
-        statusURL = "";
+        statusURL = "https://publisering.status.tv2.no/status/program/";
         apiURL = "https://dev.ai.tv2.no";
         break;
     case "stage":
@@ -23,6 +23,7 @@ switch (env) {
         break;
 }
 
+console.log(apiURL)
 
 let sleep = ms => new Promise(r => setTimeout(r, ms));
 let waitFor = async function waitFor(f) {

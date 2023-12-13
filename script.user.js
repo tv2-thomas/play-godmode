@@ -1,10 +1,11 @@
 // ==UserScript==
 // @name         Play interceptor
 // @namespace    http://tampermonkey.net/
-// @version      0.2.9
+// @version      0.3.0
 // @description  Sniff play responses, and modify the view
 // @author       Thomas Petersson
 // @match        https://play.tv2.no/*
+// @match        https://discovery.sumo.tv2.no/*
 // @match        https://stage-sumo.tv2.no/*
 // @icon         https://play.tv2.no/gfx/logo_1200x630.png
 // @require      ./utils.js
@@ -42,6 +43,7 @@ let GodModeInfoAddons = [
     const { fetch: origFetch } = window;
     window.fetch = async (...args) => {
         const response = await origFetch(...args);
+        console.log(args[0])
         if (!args[0].includes("v4/feed") && !args[0].includes("v4/content") && !args[0].includes("v5/related/content")) {
             return response;
         }
@@ -61,6 +63,7 @@ let GodModeInfoAddons = [
             .json()
             .then(async (data) => {
                 responses[path] = data;
+                console.log(path, data);
             }).catch(err => console.error(err, args));
 
         return response;

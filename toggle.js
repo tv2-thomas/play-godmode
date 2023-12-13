@@ -1,4 +1,4 @@
-let dropdownDivPromise = () => waitFor(() => document.querySelector("#user-dropdown > div"));
+let dropdownDivPromise = () => waitFor(() => document.querySelector("#userMenuDropdown > div > div"));
 
 function addGodModeToggle(dropdownsep) {
     console.debug("Adding Godmode toggle");
