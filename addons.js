@@ -28,6 +28,24 @@ function addStatusLink(d){
     }
 }
 
+function addMuxReportLink(d) {
+    const muxReportLink = `https://dashboard.mux.com/organizations/2ftfvs/environments/hos1bf/data?filters[]=video_id%3A`
+    
+    let [type, id] = d.content_id.split('-');
+    if (type === "a") {
+        return createLink(`${muxReportLink}${id}`, "Mux link")
+    }
+}
+
+function addVCCAsset(d) {
+    const vccassetLink = `https://vcc.tv2asa.no/cms/embed?modulepath=/content/assets/`
+
+    let [type, id] = d.content_id.split('-');
+    if (type === "a") {
+        return createLink(`${vccassetLink}${id}`, "VCC asset")
+    }
+}
+
 /**
  * 
  * @param {{image:{src:string}}} d 

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Play interceptor
 // @namespace    http://tampermonkey.net/
-// @version      0.3.0
+// @version      0.3.1
 // @description  Sniff play responses, and modify the view
 // @author       Thomas Petersson
 // @match        https://play.tv2.no/*
@@ -33,6 +33,8 @@ let GodModeInfoAddons = [
     addStatusLink,
     addBucketLink,
     addCopyImagepack,
+    addMuxReportLink,
+    addVCCAsset,
 ];
 
 
@@ -63,7 +65,6 @@ let GodModeInfoAddons = [
             .json()
             .then(async (data) => {
                 responses[path] = data;
-                console.log(path, data);
             }).catch(err => console.error(err, args));
 
         return response;
