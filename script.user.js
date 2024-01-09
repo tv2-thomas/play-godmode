@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Play interceptor
 // @namespace    http://tampermonkey.net/
-// @version      0.3.1
+// @version      0.3.2
 // @description  Sniff play responses, and modify the view
 // @author       Thomas Petersson
 // @match        https://play.tv2.no/*
@@ -21,6 +21,8 @@
 
 let userID;
 let profileID;
+let kidProfile = false;
+let jwt;
 let feedCssClass;
 
 // A list of functions that compose the contents of the red info box
@@ -41,11 +43,20 @@ let GodModeInfoAddons = [
 (async function () {
     'use strict';
 
+    for (let i = 0; i < localStorage.length; i++) {
+        let key = localStorage.key(i);
+        if (key.includes("auth0spa")) {
+            const storageItem = localStorage.getItem(key)
+            const body = JSON.parse(storageItem)
+            
+            jwt = body.body.access_token;
+            break;
+        }
+    }
     // Intercept fetch to read responses
     const { fetch: origFetch } = window;
     window.fetch = async (...args) => {
         const response = await origFetch(...args);
-        console.log(args[0])
         if (!args[0].includes("v4/feed") && !args[0].includes("v4/content") && !args[0].includes("v5/related/content")) {
             return response;
         }
@@ -174,6 +185,7 @@ async function handlePage(DOMfeedsPage) {
         let gridView = createLink(document.location.origin + "/feed/" + restFeed.id, "[#️]", "Grid view")
         let vccviz = createLink(`https://vccviz.ai.gcp.tv2asa.no/vccviz/?page=${restFeed.id}`, "🧙🏻", "VCCVIZ")
         let vccviznerd = createLink(`https://vccviz.ai.gcp.tv2asa.no/vccviz/feedelement/?id=${restFeed.id}`, "🤓", "VCCVIZ Source")
+        const summarizedFeed = createButton("📝", () => summarizeFeed(restFeed));
 
         let section = location.pathname === "/" ? "Forsiden" : location.pathname.split("/")[1];
         section = (section.charAt(0).toUpperCase() + section.slice(1)).replace("-", " ");
@@ -186,6 +198,7 @@ async function handlePage(DOMfeedsPage) {
         h2.appendChild(vccviz);
         h2.appendChild(vccviznerd);
         h2.appendChild(looker);
+        h2.appendChild(summarizedFeed);
 
         godModeElements.push(textNode);
 
@@ -378,3 +391,28 @@ async function populateCollection(collection) {
         }
     }
 }
+function getIds(data) {
+    return data.content.map(item => item.content_id)
+        .map(id => id.split("-"))
+        .filter(([prefix, _]) => prefix === "a")
+        .map(([_, id]) => id);
+}
+
+function summarizeFeed(feed) {
+    let url = "https://dashboard.mux.com/organizations/2ftfvs/environments/hos1bf/data"
+    //filters[0]=video_id:1928016&filters[1]=video_id:1928015&filters[2]=video_id"
+    let gridUrl = `https://ai.sumo.tv2.no/v4/feedgrid/${feed.id}?size=100&start=0&userid=${userID}&profileid=${profileID}&kidsprofile=${kidProfile}`
+    fetch(gridUrl, {
+        headers: {
+            "authorization": `Bearer ${jwt}`
+        }
+    }).then(res => res.json()).then(data => {
+        let ids = getIds(data);
+        let indx = 0;
+        let filterString = ids.map(id => `filters[${indx++}]=video_id:${id}`).join("&");
+        let finalUrl = encodeURI(`${url}?${filterString}&random=1`)
+            console.log(finalUrl)
+        window.open(finalUrl);
+    })
+}
+
