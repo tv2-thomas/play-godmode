@@ -1,62 +1,43 @@
 // ==UserScript==
 // @name         Play interceptor
 // @namespace    http://tampermonkey.net/
-// @version      0.3.2
+// @version      0.4.0
 // @description  Sniff play responses, and modify the view
 // @author       Thomas Petersson
 // @match        https://play.tv2.no/*
 // @match        https://discovery.sumo.tv2.no/*
 // @match        https://stage-sumo.tv2.no/*
+// @match        https://direktesport-dev.sumo.tv2.no/*
+// @match        https://www.direktesport.no/*
+// @match        https://direktesport.stage-sumo.tv2.no/*
 // @icon         https://play.tv2.no/gfx/logo_1200x630.png
+// @require      ./variables.js
 // @require      ./utils.js
 // @require      ./toggle.js
 // @require      ./detailPage.js
 // @require      ./dom.js
 // @require      ./rest.js
-// @require      ./addons.js
+// @require      ./infoAddons.js
 // @require      ./feedsPage.js
+// @require      ./feeds.js
 // @require      ./gridPage.js
 // @grant        none
 // ==/UserScript==
 
-let userID;
-let profileID;
-let kidProfile = false;
-let jwt;
-let feedCssClass;
-
-// A list of functions that compose the contents of the red info box
-// Each function should return an element to be appended to the info box
-// and take a single parameter which can contain fields like content_id, title, image, etc.
-// The functions are called in order, and the result is appended to the info box, and should fail gracefully
-// Also supports just returning a string, these will be created into string nodes automatically
-let GodModeInfoAddons = [
-    addContentIDCopyable,
-    addStatusLink,
-    addBucketLink,
-    addCopyImagepack,
-    addMuxReportLink,
-    addVCCAsset,
-];
-
+// @ts-check
+/// <reference path="./rest.js" />
 
 (async function () {
     'use strict';
-
-    for (let i = 0; i < localStorage.length; i++) {
-        let key = localStorage.key(i);
-        if (key.includes("auth0spa")) {
-            const storageItem = localStorage.getItem(key)
-            const body = JSON.parse(storageItem)
-            
-            jwt = body.body.access_token;
-            break;
-        }
-    }
     // Intercept fetch to read responses
     const { fetch: origFetch } = window;
     window.fetch = async (...args) => {
-        const response = await origFetch(...args);
+        let response;
+        try {
+         response = await origFetch(...args);
+        } catch (err) {
+            return response;
+        }
         if (!args[0].includes("v4/feed") && !args[0].includes("v4/content") && !args[0].includes("v5/related/content")) {
             return response;
         }
@@ -94,7 +75,7 @@ async function handleNavigation(href) {
 
     let path = (new URL(href)).pathname;
 
-    let detailsPromise = waitFor(() => document.querySelector("[data-selenium-id='details-page']")).then((detailsPage) => handleDetailsPage(path));
+    let detailsPromise = waitFor(() => document.querySelector("[data-selenium-id='details-page']")).then((_) => handleDetailsPage(path));
     let feedPromise = waitFor(() => document.querySelector("[data-selenium-id='feeds-page']")).then((page) => handlePage(page));
     let feedGridPromise = waitFor(() => document.querySelector("[data-selenium-id='feed-page']")).then((page) => handleGridPage(page));
 
@@ -177,30 +158,7 @@ async function handlePage(DOMfeedsPage) {
 
     let tasks = [];
     for (let DOMFeed of DOMElements) {
-        let h2 = await waitFor(() => DOMFeed.querySelector("h2"));
-        let restFeed = await getFeedResponse(h2.textContent);
-
-        let textNode = document.createTextNode(` (${restFeed.id})`);
-
-        let gridView = createLink(document.location.origin + "/feed/" + restFeed.id, "[#️]", "Grid view")
-        let vccviz = createLink(`https://vccviz.ai.gcp.tv2asa.no/vccviz/?page=${restFeed.id}`, "🧙🏻", "VCCVIZ")
-        let vccviznerd = createLink(`https://vccviz.ai.gcp.tv2asa.no/vccviz/feedelement/?id=${restFeed.id}`, "🤓", "VCCVIZ Source")
-        const summarizedFeed = createButton("📝", () => summarizeFeed(restFeed));
-
-        let section = location.pathname === "/" ? "Forsiden" : location.pathname.split("/")[1];
-        section = (section.charAt(0).toUpperCase() + section.slice(1)).replace("-", " ");
-        section = encodeURIComponent(convertToTitleCase(section));
-        let feedName = encodeURIComponent(restFeed.title);
-        let looker = createLink(`https://looker.tv2.no/dashboards/1553?Feed+Name=${feedName}&Page+Title=Section+-+${section}`, "👀", `Looker: ${restFeed.title}`)
-        
-        h2.appendChild(textNode);
-        h2.appendChild(gridView);
-        h2.appendChild(vccviz);
-        h2.appendChild(vccviznerd);
-        h2.appendChild(looker);
-        h2.appendChild(summarizedFeed);
-
-        godModeElements.push(textNode);
+        const restFeed = await addFeedAddons(DOMFeed);
 
         let DOMfeedItems = await waitFor(() => DOMFeed.querySelectorAll("li").length - restFeed.content.length <= 1 ?
             DOMFeed.querySelectorAll("li") : false);
@@ -232,43 +190,6 @@ async function handlePage(DOMfeedsPage) {
 }
 
 // REST
-async function getFeedResponse(DOMfeedTitle, grid = false) {
-    return await waitFor(() => {
-        let feedsResponses = []
-
-        let feedKey = `${apiURL}/v4/${grid ? "feedgrid": "feeds"}`;
-
-        for (let key in responses) {
-            if (key.includes(feedKey)) {
-                feedsResponses.push(responses[key]);
-            }
-        }
-
-        if (!feedsResponses.length) {
-            feedKey = `${altApiURL}/v4/${grid ? "feedgrid": "feeds"}`;
-            for (let key in responses) {
-                if (key.includes(feedKey)) {
-                    feedsResponses.push(responses[key]);
-                }
-            }
-        }
-
-        if (!feedsResponses.length) {
-            return;
-        }
-
-        for (let feedResponse of feedsResponses) {
-            if (grid && feedResponse.title === DOMfeedTitle) {
-                return feedResponse;
-            }
-
-            let feed = findFirst(feedResponse.feeds, f => f.title === DOMfeedTitle);
-            if (feed) {
-                return feed;
-            }
-        }
-    });
-}
 
 
 async function getDetailsResponse(path) {
@@ -391,28 +312,3 @@ async function populateCollection(collection) {
         }
     }
 }
-function getIds(data) {
-    return data.content.map(item => item.content_id)
-        .map(id => id.split("-"))
-        .filter(([prefix, _]) => prefix === "a")
-        .map(([_, id]) => id);
-}
-
-function summarizeFeed(feed) {
-    let url = "https://dashboard.mux.com/organizations/2ftfvs/environments/hos1bf/data"
-    //filters[0]=video_id:1928016&filters[1]=video_id:1928015&filters[2]=video_id"
-    let gridUrl = `https://ai.sumo.tv2.no/v4/feedgrid/${feed.id}?size=100&start=0&userid=${userID}&profileid=${profileID}&kidsprofile=${kidProfile}`
-    fetch(gridUrl, {
-        headers: {
-            "authorization": `Bearer ${jwt}`
-        }
-    }).then(res => res.json()).then(data => {
-        let ids = getIds(data);
-        let indx = 0;
-        let filterString = ids.map(id => `filters[${indx++}]=video_id:${id}`).join("&");
-        let finalUrl = encodeURI(`${url}?${filterString}&random=1`)
-            console.log(finalUrl)
-        window.open(finalUrl);
-    })
-}
-

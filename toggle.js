@@ -1,5 +1,11 @@
+//@ts-check
 let dropdownDivPromise = () => waitFor(() => document.querySelector("#userMenuDropdown > div > div"));
 
+/**
+    *
+    * @param {HTMLElement} dropdownsep
+    * @returns
+    */
 function addGodModeToggle(dropdownsep) {
     console.debug("Adding Godmode toggle");
     if (!dropdownsep) {
@@ -16,7 +22,7 @@ async function onGodModeToggle({ target }) {
         if (target.checked === isGodMode()) {
             return;
         }
-        localStorage.setItem("godmode", true);
+        localStorage.setItem("godmode", "true");
         await handleNavigation(window.location.href);
     } else {
         localStorage.removeItem("godmode");

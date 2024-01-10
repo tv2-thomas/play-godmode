@@ -1,3 +1,6 @@
+//@ts-check
+
+const VCCVIZICON = "https://vccviz.ai.gcp.tv2asa.no/vccviz/favicon.ico"
 let env = window.location.origin.includes("discovery")
     ? "dev"
     : window.location.origin.includes("stage")
@@ -66,7 +69,7 @@ const copyContent = async (text) => {
 }
 
 // Inject a style tag for custom styling, like copy button hover color
-waitFor(() => document.querySelector("head")).then(head => {
+waitFor(() => document.querySelector("head")).then(() => {
     var css = `
         .godmode-copy-button:hover{ color: #a6b4f1 }
     `;
@@ -81,7 +84,7 @@ waitFor(() => document.querySelector("head")).then(head => {
     document.getElementsByTagName('head')[0].appendChild(style);
 });
 
-window.addEventListener('popstate', function (event) {
+window.addEventListener('popstate', function () {
     // Handle the back button event here
     const hrefChangeEvent = new CustomEvent('hrefchange', { detail: window.location.href });
     window.dispatchEvent(hrefChangeEvent);
@@ -93,7 +96,7 @@ const urlElement = document.createElement('a');
 // Update the href attribute of the dummy element whenever the URL changes
 (function (history) {
     var pushState = history.pushState;
-    history.pushState = function (state) {
+    history.pushState = function () {
         pushState.apply(history, arguments);
         urlElement.href = window.location.href;
     };
@@ -101,7 +104,7 @@ const urlElement = document.createElement('a');
 
 // Create a MutationObserver instance
 const observer = new MutationObserver(function (mutations) {
-    mutations.forEach(function (mutation) {
+    mutations.forEach(function () {
         const hrefChangeEvent = new CustomEvent('hrefchange', { detail: window.location.href });
         window.dispatchEvent(hrefChangeEvent);
     });
@@ -123,4 +126,17 @@ function convertToTitleCase(str) {
         return ""
     }
     return str.toLowerCase().replace(/\b\w/g, s => s.toUpperCase());
+}
+
+/**
+    *
+    * @param {{content: []{content_id:string}}} data - Any object containing content list of objects with content_id
+    * @param {string[]} prefixes - Array of prefixes to filter by
+    * @returns {string[]} - Array of content_ids
+    */
+function getIds(data, prefixes = ["a"]) {
+    return data.content.map(item => item.content_id)
+        .map(id => id.split("-"))
+        .filter(([prefix, _]) => prefixes.some(prefix))
+        .map(([_, id]) => id);
 }

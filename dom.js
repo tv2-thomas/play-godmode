@@ -1,3 +1,4 @@
+//@ts-check
 let godModeElements = [];
 
 
@@ -43,7 +44,7 @@ function createInfoDiv(d) {
     hamburger.style.right = "0px";
     hamburger.style.color = "white";
     hamburger.style.backgroundColor = "#ff0000"; // Red background
-    hamburger.style.zIndex = "9999"; // Make sure it stays on top
+    hamburger.style.zIndex = "8001"; // Make sure it stays on top
     hamburger.style.borderRadius = "5px"; // Rounded edges
     hamburger.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.5)"; // Subtle shadow
 
@@ -69,7 +70,7 @@ function createInfoDiv(d) {
         hamburger.style.transform = "scale(1)";
     });
 
-    container.style.zIndex = "9998"
+    container.style.zIndex = "8000"
 
     return menu;
 }
@@ -102,9 +103,29 @@ function cleanupDOM() {
     }
 }
 
+function createIconedText(iconurl ,text) {
+    const span = document.createElement("span");
+    const icon = document.createElement("img");
+    span.style.display = "flex";
+    icon.src = iconurl;
+    icon.style.width = "40px";
+    icon.style.height = "40px";
+    icon.style.marginRight = "5px";
+
+    span.appendChild(icon);
+    span.appendChild(document.createTextNode(text))
+    return span;
+}
+
 function createLink(link, text, title="") {
     let linkElem = document.createElement("a");
-    linkElem.textContent = text;
+
+    // If text is string add to TextContent, else assume it's a DOM element
+    if (typeof text === "string") {
+        linkElem.textContent = text;
+    } else {
+        linkElem.appendChild(text);
+    }
     linkElem.href = link;
     if (title) {
         linkElem.title = title;
@@ -115,7 +136,12 @@ function createLink(link, text, title="") {
 
 function createButton(text, func, cssClass) {
     let buttonElem = document.createElement("button");
-    buttonElem.textContent = text;
+
+    if (typeof text === "string") {
+        buttonElem.textContent = text;
+    } else {
+        buttonElem.appendChild(text);
+    }
     buttonElem.addEventListener("click", func);
     if (cssClass) {
         buttonElem.classList.add(cssClass);
