@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Play interceptor
 // @namespace    http://tampermonkey.net/
-// @version      0.4.6
+// @version      0.4.7
 // @description  Sniff play responses, and modify the view
 // @author       Thomas Petersson
 // @match        https://play.tv2.no/*
@@ -26,6 +26,7 @@
 
 // @ts-check
 /// <reference path="./rest.js" />
+/// <reference path="./feeds.js" />
 // TODO: Clean up the ts-check errors
 (async function () {
     'use strict';
@@ -162,7 +163,7 @@ async function handlePage(DOMfeedsPage) {
         let restFeed
 
         try {
-            restFeed = await getFeedResponse(DOMFeed.querySelector("h2").textContent);
+            restFeed = await addFeedAddons(DOMFeed);
         }
         catch (err) {
             console.error(err);
