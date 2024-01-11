@@ -1,4 +1,5 @@
 //@ts-check
+/// <reference path="./utils.js" />
 
 let responses = {};
 
@@ -10,49 +11,50 @@ let responses = {};
  */
 async function getFeedResponse(DOMfeedTitle, grid = false) {
     return await waitFor(() => {
-        let feedsResponses = []
-
         const locationPathname = (new URL(window.location.href)).pathname;
-        const pathResponse = responses[`${apiURL}/v4/content/path${locationPathname}`];
+        let pathKey = `${apiURL}/v4/content/path${locationPathname}`;
+        let pathResponse = responses[pathKey];
+        if (!pathResponse) {
+            pathKey = `${altApiURL}/v4/content/path${locationPathname}`;
+            pathResponse = responses[pathKey];
+        }
         if (!pathResponse) {
             return;
         }
-        let feedKey = apiURL
+
+        let feedKey = `${apiURL}${pathResponse.feeds.self_uri}`;
         if (grid) {
-            feedKey += pathResponse.feed.self_uri;
-        } else {
-            feedKey += pathResponse.feeds.self_uri
+            feedKey = feedKey.replace("feeds", "feedgrid");
         }
 
         for (let key in responses) {
             if (key.includes(feedKey)) {
-                feedsResponses.push(responses[key]);
-            }
-        }
-
-        if (!feedsResponses.length) {
-            feedKey = `${altApiURL}/v4/${grid ? "feedgrid": "feeds"}`;
-            for (let key in responses) {
-                if (key.includes(feedKey)) {
-                    feedsResponses.push(responses[key]);
+                const feed = responses[key];
+                for (let i = 0; i < feed.feeds.length; i++) {
+                    const item = feed.feeds[i];
+                    if (item.title === DOMfeedTitle) {
+                        return item;
+                    }
                 }
             }
         }
 
-        if (!feedsResponses.length) {
-            return;
+        feedKey = `${altApiURL}${pathResponse.feeds.self_uri}`;
+        if (grid) {
+            feedKey = feedKey.replace("feeds", "feedgrid");
+        }
+        for (let key in responses) {
+            if (key.includes(feedKey)) {
+                const feed = responses[key];
+                for (let i = 0; i < feed.feeds.length; i++) {
+                    const item = feed.feeds[i];
+                    if (item.title === DOMfeedTitle) {
+                        return item;
+                    }
+                }
+            }
         }
 
-        for (let feedResponse of feedsResponses) {
-            if (grid && feedResponse.title === DOMfeedTitle) {
-                return feedResponse;
-            }
-
-            let feed = findFirst(feedResponse.feeds, f => f.title === DOMfeedTitle);
-            if (feed) {
-                return feed;
-            }
-        }
     });
 }
 

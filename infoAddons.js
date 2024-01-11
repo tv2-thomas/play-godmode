@@ -76,6 +76,9 @@ function addVCCAsset(d) {
  * @returns 
  */
 function addBucketLink(d){
+    if (!d || !d.image || !d.image.src) {
+        return;
+    }
     // Add link to image bucket
     let bucketLink = `https://console.cloud.google.com/storage/browser/codi-play-content-images-ew1/${env}/`;
     let imgurl = d.image.src;
@@ -96,6 +99,9 @@ function addBucketLink(d){
  * @returns 
  */
 function addCopyImagepack(d){
+    if (!d || !d.image || !d.image.src) {
+        return;
+    }
     // Add link to image bucket
     let imgurl = d.image.src;
     let s = imgurl.split("_");
