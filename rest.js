@@ -17,9 +17,11 @@ async function getFeedResponse(DOMfeedTitle, grid = false) {
         if (!pathResponse) {
             return;
         }
-        let feedKey = `${apiURL}${pathResponse.feeds.self_uri}`;
+        let feedKey = apiURL
         if (grid) {
-            feedKey = feedKey.replace("feeds", "feedgrid");
+            feedKey += pathResponse.feed.self_uri;
+        } else {
+            feedKey += pathResponse.feeds.self_uri
         }
 
         for (let key in responses) {
