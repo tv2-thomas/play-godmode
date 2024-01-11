@@ -12,7 +12,15 @@ async function getFeedResponse(DOMfeedTitle, grid = false) {
     return await waitFor(() => {
         let feedsResponses = []
 
-        let feedKey = `${apiURL}/v4/${grid ? "feedgrid": "feeds"}`;
+        const locationPathname = (new URL(window.location.href)).pathname;
+        const pathResponse = responses[`${apiURL}/v4/content/path${locationPathname}`];
+        if (!pathResponse) {
+            return;
+        }
+        let feedKey = `${apiURL}${pathResponse.feeds.self_uri}`;
+        if (grid) {
+            feedKey = feedKey.replace("feeds", "feedgrid");
+        }
 
         for (let key in responses) {
             if (key.includes(feedKey)) {

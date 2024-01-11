@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Play interceptor
 // @namespace    http://tampermonkey.net/
-// @version      0.4.0
+// @version      0.4.2
 // @description  Sniff play responses, and modify the view
 // @author       Thomas Petersson
 // @match        https://play.tv2.no/*
@@ -26,7 +26,7 @@
 
 // @ts-check
 /// <reference path="./rest.js" />
-
+// TODO: Clean up the ts-check errors
 (async function () {
     'use strict';
     // Intercept fetch to read responses
@@ -141,12 +141,13 @@ async function handleDetailsPage(path) {
 
 async function handlePage(DOMfeedsPage) {
     let DOMfeeds =  DOMfeedsPage.querySelectorAll("[data-selenium-id='feed-default']")
+    let DOMfeedTopTen =  DOMfeedsPage.querySelectorAll("[data-selenium-id='feed-top-ten']")
     let DOMfeedButtons =  DOMfeedsPage.querySelectorAll("[data-selenium-id='feed-buttons']")
     let DOMCWFeed =  DOMfeedsPage.querySelectorAll("[data-selenium-id='feed-continue-watching']")
     let DOMfeedPromoted =  DOMfeedsPage.querySelectorAll("[data-selenium-id='feed-promoted']")
 
     let DOMElements = [];
-    for (let result of [DOMfeeds, DOMfeedButtons, DOMfeedPromoted, DOMCWFeed]) {
+    for (let result of [DOMfeeds, DOMfeedTopTen, DOMfeedButtons, DOMfeedPromoted, DOMCWFeed]) {
         if (result) {
             DOMElements.push(...result);
         }
