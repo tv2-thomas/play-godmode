@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Play interceptor
 // @namespace    http://tampermonkey.net/
-// @version      0.4.3
+// @version      0.4.5
 // @description  Sniff play responses, and modify the view
 // @author       Thomas Petersson
 // @match        https://play.tv2.no/*
@@ -18,8 +18,8 @@
 // @require      ./dom.js
 // @require      ./rest.js
 // @require      ./infoAddons.js
-// @require      ./feedsPage.js
 // @require      ./feeds.js
+// @require      ./feedsPage.js
 // @require      ./gridPage.js
 // @grant        none
 // ==/UserScript==
@@ -159,7 +159,15 @@ async function handlePage(DOMfeedsPage) {
 
     let tasks = [];
     for (let DOMFeed of DOMElements) {
-        const restFeed = await addFeedAddons(DOMFeed);
+        let restFeed
+
+        try {
+            restFeed = await getFeedResponse(DOMFeed.querySelector("h2").textContent);
+        }
+        catch (err) {
+            console.error(err);
+            continue;
+        }
 
         let DOMfeedItems = await waitFor(() => DOMFeed.querySelectorAll("li").length - restFeed.content.length <= 1 ?
             DOMFeed.querySelectorAll("li") : false);

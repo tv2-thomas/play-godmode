@@ -10,14 +10,17 @@ let responses = {};
  * @returns {Promise<Object>} - The feed response
  */
 async function getFeedResponse(DOMfeedTitle, grid = false) {
+    console.log(responses);
     return await waitFor(() => {
         const locationPathname = (new URL(window.location.href)).pathname;
+
         let pathKey = `${apiURL}/v4/content/path${locationPathname}`;
         let pathResponse = responses[pathKey];
         if (!pathResponse) {
             pathKey = `${altApiURL}/v4/content/path${locationPathname}`;
             pathResponse = responses[pathKey];
         }
+
         if (!pathResponse) {
             return;
         }
