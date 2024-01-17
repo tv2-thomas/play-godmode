@@ -10,10 +10,12 @@ let env = window.location.origin.includes("discovery")
 let statusURL;
 let apiURL;
 let altApiURL;
+let vccvizURL = "https://vccviz.ai.gcp.tv2asa.no/vccviz/";
 switch (env) {
     case ("dev"):
         statusURL = "https://publisering.status.tv2.no/status/program/";
         apiURL = "https://dev.ai.tv2.no";
+        vccvizURL = "https://dev.ai.tv2.no/vccviz/";
         break;
     case "stage":
         statusURL = "https://publisering.status.tv2.no/status/program/";

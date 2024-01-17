@@ -111,7 +111,7 @@ function addFeedGridButton(rest) {
 function addFeedVCCVIZ(rest) {
     const div = document.createElement('div')
     const iconedText = createIconedText(VCCVIZICON, "VCC VIZ")
-    const vccviz = createLink(`https://vccviz.ai.gcp.tv2asa.no/vccviz/?page=${rest.id}`, iconedText, "VCCVIZ")
+    const vccviz = createLink(`${vccvizURL}?page=${rest.id}`, iconedText, "VCCVIZ")
     div.appendChild(vccviz)
     return div
 }
@@ -124,7 +124,7 @@ function addFeedVCCVIZ(rest) {
 function addFeedVCCVIZNerd(rest) {
     const div = document.createElement('div')
     const iconedText = createIconedText(VCCVIZICON, "VCC VIZ Source")
-    const vccviznerd = createLink(`https://vccviz.ai.gcp.tv2asa.no/vccviz/feedelement/?id=${rest.id}`, iconedText, "VCCVIZ Source")
+    const vccviznerd = createLink(`${vccvizURL}feedelement/?id=${rest.id}`, iconedText, "VCCVIZ Source")
     div.appendChild(vccviznerd)
     return div
 }
