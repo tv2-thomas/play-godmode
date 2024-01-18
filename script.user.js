@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Play interceptor
 // @namespace    http://tampermonkey.net/
-// @version      0.4.9
+// @version      0.4.10
 // @description  Sniff play responses, and modify the view
 // @author       Thomas Petersson
 // @match        https://play.tv2.no/*
@@ -178,7 +178,7 @@ async function handlePage(DOMfeedsPage) {
                 let title = h3.textContent;
                 let feedItemResponse = findFirst(restFeed.content, c => c.title === title);
                 if (feedItemResponse) {
-                    let infoDiv = createInfoDiv(feedItemResponse);
+                    let infoDiv = createInfoDiv(feedItemResponse, DOMItem);
                     DOMItem.style.position = "relative";
                     DOMItem.appendChild(infoDiv);
                 }
@@ -186,7 +186,7 @@ async function handlePage(DOMfeedsPage) {
                 let img = await waitFor(() => DOMItem.querySelector("img"));
                 let feedItemResponse = findFirst(restFeed.content, c => img.src.includes(c.image.src));
                 if (feedItemResponse) {
-                    let infoDiv = createInfoDiv(feedItemResponse);
+                    let infoDiv = createInfoDiv(feedItemResponse, DOMItem);
                     DOMItem.style.position = "relative";
                     DOMItem.appendChild(infoDiv);
                 }

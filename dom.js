@@ -2,7 +2,7 @@
 let godModeElements = [];
 
 
-function createInfoDiv(d) {
+function createInfoDiv(d, dom) {
     let container = document.createElement("div");
     let menu = document.createElement("div");
     let hamburger = document.createElement("div");
@@ -19,7 +19,7 @@ function createInfoDiv(d) {
 
     // Addons
     for (let addon of GodModeInfoAddons) {
-        let elem = addon(d);
+        let elem = addon(d, dom);
         if (typeof elem === "string") {
             elem = document.createTextNode(elem);
         }

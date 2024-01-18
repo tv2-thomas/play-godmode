@@ -12,6 +12,7 @@ let GodModeInfoAddons = [
     addCopyImagepack,
     addMuxReportLink,
     addVCCAsset,
+    addGotoDetails,
 ];
 
 
@@ -142,4 +143,12 @@ function addCopyImagepack(d){
     span.appendChild(br());
     span.appendChild(overrideBtn);
     return span;
+}
+
+function addGotoDetails(d, dom) {
+    const a = dom.querySelector("a")
+    if (a && a.href && a.href.includes("play=true")) {
+        return createLink(a.href.replaceAll("play=true", ""), "Go to details");
+    };
+    
 }
