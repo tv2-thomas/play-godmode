@@ -21,56 +21,138 @@
 // @require      ./feeds.js
 // @require      ./feedsPage.js
 // @require      ./gridPage.js
+// @require      ./settings.js
 // @grant        none
 // ==/UserScript==
 
 // @ts-check
 /// <reference path="./rest.js" />
 /// <reference path="./feeds.js" />
+/// <reference path="./settings.js" />
 // TODO: Clean up the ts-check errors
+
+// Intercept fetch to read responses
+const { fetch: origFetch } = window;
+window.fetch = async function(...args) {
+    let response;
+    try {
+        response = await origFetch(...args);
+    } catch (err) {
+        return response;
+    }
+    if (!args[0].includes("v4/feed") && !args[0].includes("v4/content") && !args[0].includes("v5/related/content")) {
+        return response;
+    }
+
+    const url = new URL(args[0]);
+    const path = `${url.origin}${url.pathname}`;
+    if (url.searchParams.get("userid")) {
+        userID = url.searchParams.get("userid");
+    }
+
+    if (url.searchParams.get("profileid")) {
+        profileID = url.searchParams.get("profileid");
+    }
+
+    response
+        .clone()
+        .json()
+        .then(async (data) => {
+            responses[path] = data;
+        }).catch(err => console.error(err, args));
+
+    return response;
+};
+
 (async function () {
     'use strict';
-    // Intercept fetch to read responses
-    const { fetch: origFetch } = window;
-    window.fetch = async (...args) => {
-        let response;
-        try {
-         response = await origFetch(...args);
-        } catch (err) {
-            return response;
-        }
-        if (!args[0].includes("v4/feed") && !args[0].includes("v4/content") && !args[0].includes("v5/related/content")) {
-            return response;
-        }
-
-        const url = new URL(args[0]);
-        const path = `${url.origin}${url.pathname}`;
-        if (url.searchParams.get("userid")) {
-            userID = url.searchParams.get("userid");
-        }
-
-        if (url.searchParams.get("profileid")) {
-            profileID = url.searchParams.get("profileid");
-        }
-
-        response
-            .clone()
-            .json()
-            .then(async (data) => {
-                responses[path] = data;
-            }).catch(err => console.error(err, args));
-
-        return response;
-    };
-
     if (!window.godmodeinput) {
         let dropdowndiv = await dropdownDivPromise();
         addGodModeToggle(dropdowndiv);
     }
+
+    if (window.localStorage.getItem("godmode") === "true") {
+        handleNavigation(window.location.href);
+    }
 })();
+
+
+waitFor(() => getSettings()).then(s => {
+    if (s.imagereprocess) {
+        startImageReprocessInterval();
+    }
+});
+
+let imageReprocessInterval;
+function startImageReprocessInterval() {
+    console.debug("Starting image preprocessor button interval")
+    if (imageReprocessInterval) {
+        return;
+    }
+    imageReprocessInterval = setInterval(checkImages, 1000);
+}
+
+function stopImageReprocessInterval() {
+    clearInterval(imageReprocessInterval);
+}
+//
+function checkImages() {
+    const imgs = document.querySelectorAll("img");
+    for (let img of imgs) {
+        if (!img.src.includes("image-packs")) {
+            continue;
+        }
+
+
+        let [parent, ok] = parentUntilElement(img, "li");
+        if (!ok || parent.querySelector(".godmodepreprocessbutton")) {
+            continue;
+        }
+        parent = parent.querySelector("div>div")
+        parent.style.position = "relative";
+
+        let src = img.src;
+        let s = img.src.split("_");
+        if (s.length > 1) {
+            src = s[1]
+        }
+
+        const regImg2 = /[a-z0-9]{24}/.exec(src);
+        if (!regImg2 || regImg2.length == 0) {
+            continue;
+        }
+        const imagepackid = regImg2[0];
+
+        const btn = document.createElement("button");
+        btn.style.position = "absolute";
+        btn.style.bottom = "0";
+        btn.style.width = "80%";
+        btn.style.left = "10%";
+        btn.style.background = "red";
+        btn.style.color = "white";
+        btn.style.border = "2px crimson soldi";
+        btn.style.height = "30px";
+        btn.style.borderRadius = "5px";
+        btn.style.boxShadow = "0 0 1px 1px rgba(255, 255, 255, 0.5)";
+        btn.classList.add("godmodepreprocessbutton");
+        btn.textContent = "Re-process image";
+        btn.onclick = () => {
+            fetch(preprocessURL + imagepackid, { method: "POST" }).then(res => {
+                if (res.status === 200) { btn.style.background = "green"; btn.textContent = "queued"; btn.disabled = true; }
+                else alert("Failed!");
+            })
+        }
+        if (ok) parent.appendChild(btn);
+    }
+}
 
 async function handleNavigation(href) {
     if (!isGodMode()) {
+        console.log("Godmode is off");
+        return;
+    }
+    if (window.location.pathname === "/godmode") {
+        godModeSettings();
         return;
     }
 
@@ -141,11 +223,11 @@ async function handleDetailsPage(path) {
 }
 
 async function handlePage(DOMfeedsPage) {
-    let DOMfeeds =  DOMfeedsPage.querySelectorAll("[data-selenium-id='feed-default']")
-    let DOMfeedTopTen =  DOMfeedsPage.querySelectorAll("[data-selenium-id='feed-top-ten']")
-    let DOMfeedButtons =  DOMfeedsPage.querySelectorAll("[data-selenium-id='feed-buttons']")
-    let DOMCWFeed =  DOMfeedsPage.querySelectorAll("[data-selenium-id='feed-continue-watching']")
-    let DOMfeedPromoted =  DOMfeedsPage.querySelectorAll("[data-selenium-id='feed-promoted']")
+    let DOMfeeds = DOMfeedsPage.querySelectorAll("[data-selenium-id='feed-default']")
+    let DOMfeedTopTen = DOMfeedsPage.querySelectorAll("[data-selenium-id='feed-top-ten']")
+    let DOMfeedButtons = DOMfeedsPage.querySelectorAll("[data-selenium-id='feed-buttons']")
+    let DOMCWFeed = DOMfeedsPage.querySelectorAll("[data-selenium-id='feed-continue-watching']")
+    let DOMfeedPromoted = DOMfeedsPage.querySelectorAll("[data-selenium-id='feed-promoted']")
 
     let DOMElements = [];
     for (let result of [DOMfeeds, DOMfeedTopTen, DOMfeedButtons, DOMfeedPromoted, DOMCWFeed]) {
@@ -157,7 +239,6 @@ async function handlePage(DOMfeedsPage) {
     if (!DOMElements) {
         return;
     }
-
     let tasks = [];
     for (let DOMFeed of DOMElements) {
         let restFeed
@@ -171,7 +252,8 @@ async function handlePage(DOMfeedsPage) {
         }
 
         let DOMfeedItems = await waitFor(() => DOMFeed.querySelectorAll("li").length - restFeed.content.length <= 1 ?
-            DOMFeed.querySelectorAll("li") : false);
+            DOMFeed.querySelectorAll("li>div") : false);
+
         let feedItemTasks = Array.from(DOMfeedItems).map(async (DOMItem) => {
             let h3 = DOMItem.querySelector("h3");
             if (h3) {
@@ -179,16 +261,14 @@ async function handlePage(DOMfeedsPage) {
                 let feedItemResponse = findFirst(restFeed.content, c => c.title === title);
                 if (feedItemResponse) {
                     let infoDiv = createInfoDiv(feedItemResponse, DOMItem);
-                    DOMItem.style.position = "relative";
-                    DOMItem.appendChild(infoDiv);
+                    DOMItem.querySelector("div").appendChild(infoDiv);
                 }
             } else {
                 let img = await waitFor(() => DOMItem.querySelector("img"));
                 let feedItemResponse = findFirst(restFeed.content, c => img.src.includes(c.image.src));
                 if (feedItemResponse) {
                     let infoDiv = createInfoDiv(feedItemResponse, DOMItem);
-                    DOMItem.style.position = "relative";
-                    DOMItem.appendChild(infoDiv);
+                    DOMItem.querySelector("div").appendChild(infoDiv);
                 }
             }
         });

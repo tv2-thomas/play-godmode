@@ -14,7 +14,7 @@ function addGodModeToggle(dropdownsep) {
 
     let toggle = createToggleButton(onGodModeToggle);
     insertAfter(toggle, dropdownsep);
-    window.godmodeinput.checked = isGodMode();
+    waitFor(() => document.getElementById("godmodeinput")).then(el => document.getElementById("godmodeinput").checked = isGodMode());
 }
 
 async function onGodModeToggle({ target }) {

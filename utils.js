@@ -11,15 +11,18 @@ let statusURL;
 let apiURL;
 let altApiURL;
 let vccvizURL = "https://vccviz.ai.gcp.tv2asa.no/vccviz/";
+let preprocessURL = "https://admin-images.ai.gcp.tv2asa.no/v1/pre-process/";
 switch (env) {
     case ("dev"):
         statusURL = "https://publisering.status.tv2.no/status/program/";
         apiURL = "https://dev.ai.tv2.no";
         vccvizURL = "https://dev.ai.tv2.no/vccviz/";
+        preprocessURL = "https://dev-admin-images.ai.gcp.tv2asa.no/v1/pre-process/";
         break;
     case "stage":
         statusURL = "https://publisering.status.tv2.no/status/program/";
         apiURL = "https://stage.ai.tv2.no";
+        preprocessURL = "https://stage-admin-images.ai.gcp.tv2asa.no/v1/pre-process/";
         break;
     case "prod":
         statusURL = "https://publisering.status.tv2.no/status/program/";
@@ -132,7 +135,7 @@ function convertToTitleCase(str) {
 
 /**
     *
-    * @param {{content: []{content_id:string}}} data - Any object containing content list of objects with content_id
+    * @param {{content: {content_id:string}[]}} data - Any object containing content list of objects with content_id
     * @param {string[]} prefixes - Array of prefixes to filter by
     * @returns {string[]} - Array of content_ids
     */
@@ -141,4 +144,15 @@ function getIds(data, prefixes = ["a"]) {
         .map(id => id.split("-"))
         .filter(([prefix, _]) => prefixes.some(prefix))
         .map(([_, id]) => id);
+}
+
+function parentUntilElement(node, element) {
+    if (!node.parentNode || node.parentNode.tagName.toLowerCase() === "body") {
+        return [node, false];
+    }
+    if (node.parentNode.tagName.toLowerCase() === element) {
+        return [node.parentNode, true];
+    }
+
+    return parentUntilElement(node.parentNode, element);
 }

@@ -13,6 +13,7 @@ let GodModeInfoAddons = [
     addMuxReportLink,
     addVCCAsset,
     addGotoDetails,
+    copyImageUrlVariants,
 ];
 
 
@@ -151,4 +152,84 @@ function addGotoDetails(d, dom) {
         return createLink(a.href.replaceAll("play=true", ""), "Go to details");
     };
     
+}
+
+function copyImageUrlVariants(d, dom) {
+    if (!d || !d.image || !d.image.src) {
+        return;
+    }
+
+    let src = d.image.src;
+    let s = src.split("_");
+    if (s.length > 1) {
+        src = s[1]
+    }
+
+    const regImg2 = /[a-z0-9]{24}/.exec(src);
+    if (!regImg2 || regImg2.length == 0) {
+        return;
+    }
+    const imagepackid = regImg2[0];
+
+    let url = d.image.src
+    const wrapper = document.createElement("div");
+    const dropdown = document.createElement("select");
+    const locationdropdown = document.createElement("select");
+    dropdown.style.color="black";
+    locationdropdown.style.color="black";
+
+    // Select a size to copy and make a button that copies it
+    const sizes = [
+        { name: "Original", size: "" },
+        { name: "Small", size: "_small" },
+        { name: "Medium", size: "_medium" },
+        { name: "Large", size: "_large" },
+        { name: "4K", size: "_xlarge" },
+    ];
+
+    const locations = [
+        { name: "Original", location: "" },
+        { name: "main", location: "main" },
+        { name: "identity", location: "identity" },
+        { name: "identity16x9", location: "identity16x9" },
+        { name: "list", location: "list" },
+        { name: "moviePoster", location: "moviePoster" },
+        { name: "list32x9", location: "list32x9" },
+    ]
+
+    sizes.forEach(s => {
+        const option = document.createElement("option");
+        option.value = s.size;
+        option.innerText = s.name;
+        dropdown.appendChild(option);
+    });
+
+    locations.forEach(s => {
+        const option = document.createElement("option");
+        option.value = s.location;
+        option.innerText = s.name;
+        locationdropdown.appendChild(option);
+    });
+
+    const copyButton = document.createElement("button");
+    copyButton.innerText = "Copy";
+    copyButton.addEventListener("click", () => {
+        if (dropdown.value === "" && locationdropdown.value === "") {
+            copyContent(dom.querySelector("img").src);
+            return;
+        }
+
+        if (dropdown.value === "") {
+            copyContent(url + "?location="+ locationdropdown.value)
+            return;
+        }
+
+        copyContent(url + "?location="+ locationdropdown.value + "&width=" + dropdown.value)
+    });
+
+    wrapper.appendChild(locationdropdown);
+    wrapper.appendChild(dropdown);
+    wrapper.appendChild(copyButton);
+
+    return wrapper;
 }
