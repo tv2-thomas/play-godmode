@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Play interceptor
 // @namespace    http://tampermonkey.net/
-// @version      0.4.10
+// @version      0.5.0
 // @description  Sniff play responses, and modify the view
 // @author       Thomas Petersson
 // @match        https://play.tv2.no/*
@@ -133,6 +133,7 @@ function checkImages() {
         btn.style.border = "2px crimson soldi";
         btn.style.height = "30px";
         btn.style.borderRadius = "5px";
+        btn.style.fontSize = "1.5rem";
         btn.style.boxShadow = "0 0 1px 1px rgba(255, 255, 255, 0.5)";
         btn.classList.add("godmodepreprocessbutton");
         btn.textContent = "Re-process image";

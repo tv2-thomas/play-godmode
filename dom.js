@@ -10,8 +10,10 @@ function createInfoDiv(d, dom) {
     // Style the container
     container.style.position = "absolute";
     container.style.top = "0px";
+    container.style.fontSize = "1.5rem";
     container.style.right = "0px";
     container.style.display = "none"; // Initially hidden
+    container.style.lineHeight = "2rem";
     container.style.backgroundColor = "#ff0000"; // Red background
     container.style.flexDirection = "column";
     container.style.padding = "10px 40px 10px 10px"; // Padding inside the bubble

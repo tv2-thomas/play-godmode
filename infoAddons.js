@@ -181,10 +181,10 @@ function copyImageUrlVariants(d, dom) {
     // Select a size to copy and make a button that copies it
     const sizes = [
         { name: "Original", size: "" },
-        { name: "Small", size: "_small" },
-        { name: "Medium", size: "_medium" },
-        { name: "Large", size: "_large" },
-        { name: "4K", size: "_xlarge" },
+        { name: "Small", size: "288" },
+        { name: "Medium", size: "640" },
+        { name: "Large", size: "1080" },
+        { name: "4K", size: "3840" },
     ];
 
     const locations = [
@@ -193,6 +193,8 @@ function copyImageUrlVariants(d, dom) {
         { name: "identity", location: "identity" },
         { name: "identity16x9", location: "identity16x9" },
         { name: "list", location: "list" },
+        { name: "listClean", location: "listClean" },
+        { name: "photoSquare", location: "photoSquare" },
         { name: "moviePoster", location: "moviePoster" },
         { name: "list32x9", location: "list32x9" },
     ]
